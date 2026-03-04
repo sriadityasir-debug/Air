@@ -1,405 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-<title>SkyPilot</title>
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap');
-*{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;overflow:hidden;background:#1a3a6e;
-  font-family:'Share Tech Mono',monospace;user-select:none;-webkit-user-select:none;touch-action:none;}
-canvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%;}
-
-#hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
-.hp{position:absolute;background:rgba(0,8,4,0.72);border:1px solid rgba(0,255,130,0.35);
-  border-radius:6px;padding:7px 12px;backdrop-filter:blur(3px);}
-.hl{font-size:8px;color:rgba(0,255,130,0.5);letter-spacing:2px;text-transform:uppercase;}
-.hv{font-size:20px;font-family:'Orbitron',monospace;color:#00ff82;line-height:1;}
-.hu{font-size:8px;color:rgba(0,255,130,0.5);}
-#pSpeed{top:10px;left:10px;min-width:90px;}
-#pAlt{top:10px;left:118px;min-width:90px;}
-#pThr{top:10px;right:10px;min-width:90px;}
-#thrBar{width:100%;height:6px;background:rgba(0,255,130,0.15);border-radius:3px;margin-top:5px;}
-#thrFill{height:6px;background:linear-gradient(90deg,#00ff82,#00d4ff);border-radius:3px;width:0%;box-shadow:0 0 6px #00ff82;}
-
-#ahWrap{position:absolute;top:10px;left:50%;transform:translateX(-50%);}
-#ahCvs{border-radius:50%;border:2px solid rgba(0,255,130,0.4);display:block;}
-#compass{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
-  background:rgba(0,8,4,0.72);border:1px solid rgba(0,255,130,0.35);border-radius:6px;
-  padding:5px 14px;font-size:12px;color:#00ff82;letter-spacing:2px;white-space:nowrap;}
-
-#status{position:absolute;top:90px;right:10px;text-align:right;}
-.sb{font-size:9px;letter-spacing:1px;margin-bottom:3px;padding:2px 6px;border-radius:3px;}
-.son{color:#00ff82;} .soff{color:rgba(0,255,130,0.28);}
-
-#warn{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);
-  font-family:'Orbitron';font-size:18px;color:#ff3a3a;letter-spacing:3px;
-  opacity:0;text-shadow:0 0 12px #ff3a3a;pointer-events:none;}
-#xhair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:44px;height:44px;pointer-events:none;}
-#xhair::before,#xhair::after{content:'';position:absolute;background:rgba(0,255,130,0.55);}
-#xhair::before{width:100%;height:1px;top:50%;}
-#xhair::after{width:1px;height:100%;left:50%;}
-.xring{position:absolute;border:1px solid rgba(0,255,130,0.35);border-radius:50%;
-  top:50%;left:50%;transform:translate(-50%,-50%);width:66px;height:66px;}
-#keys{position:absolute;bottom:10px;left:10px;font-size:9px;
-  color:rgba(0,255,130,0.45);line-height:1.9;letter-spacing:1px;}
-#keys span{color:rgba(0,255,130,0.85);}
-@media(max-width:768px){#keys{display:none;}}
-
-/* MOBILE */
-#mob{position:fixed;bottom:0;left:0;right:0;height:215px;z-index:20;pointer-events:none;display:none;}
-#joy{position:absolute;bottom:18px;left:16px;width:148px;height:148px;
-  background:rgba(0,255,130,0.07);border:1.5px solid rgba(0,255,130,0.3);
-  border-radius:50%;pointer-events:all;touch-action:none;}
-#jKnob{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-  width:48px;height:48px;background:rgba(0,255,130,0.22);
-  border:2px solid rgba(0,255,130,0.8);border-radius:50%;pointer-events:none;
-  box-shadow:0 0 12px rgba(0,255,130,0.4);}
-
-#yawRow{position:absolute;bottom:32px;left:178px;display:flex;gap:8px;pointer-events:none;}
-.yBtn{width:54px;height:54px;background:rgba(0,255,130,0.1);
-  border:1.5px solid rgba(0,255,130,0.4);border-radius:10px;
-  color:#00ff82;font-size:20px;display:flex;align-items:center;justify-content:center;
-  pointer-events:all;touch-action:none;-webkit-tap-highlight-color:transparent;}
-.yBtn:active{background:rgba(0,255,130,0.35);}
-
-#actCol{position:absolute;bottom:18px;left:250px;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
-.aBtn{width:54px;height:54px;background:rgba(0,255,130,0.1);
-  border:1.5px solid rgba(0,255,130,0.4);border-radius:10px;
-  color:#00ff82;font-size:10px;font-family:'Share Tech Mono',monospace;letter-spacing:1px;
-  display:flex;align-items:center;justify-content:center;
-  pointer-events:all;touch-action:none;-webkit-tap-highlight-color:transparent;}
-.aBtn:active{background:rgba(0,255,130,0.35);}
-
-#thrCol{position:absolute;bottom:18px;right:14px;width:52px;
-  display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:all;touch-action:none;}
-#thrLbl{font-size:8px;color:rgba(0,255,130,0.5);letter-spacing:1px;}
-#thrTrack{width:16px;height:160px;background:rgba(0,255,130,0.1);
-  border-radius:8px;border:1px solid rgba(0,255,130,0.3);position:relative;cursor:pointer;}
-#thrFill2{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,#00ff82,#00d4ff);
-  border-radius:8px;height:0%;box-shadow:0 0 6px rgba(0,255,130,0.5);}
-#thrThumb{position:absolute;left:50%;transform:translateX(-50%);
-  width:30px;height:18px;background:rgba(0,255,130,0.3);
-  border:2px solid #00ff82;border-radius:5px;bottom:0;box-shadow:0 0 8px rgba(0,255,130,0.4);}
-
-/* crash / start */
-#crash{position:fixed;inset:0;background:rgba(160,0,0,0.5);z-index:100;
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-#crash h1{font-family:'Orbitron';font-size:clamp(32px,10vw,52px);color:#fff;
-  text-shadow:0 0 30px #ff0000;animation:blink .5s infinite;}
-#crash p{font-family:'Share Tech Mono';color:rgba(255,255,255,0.8);font-size:13px;}
-.bigBtn{padding:14px 44px;background:rgba(255,255,255,0.12);border:2px solid #fff;
-  color:#fff;font-family:'Orbitron';font-size:14px;border-radius:6px;
-  cursor:pointer;letter-spacing:2px;pointer-events:all;}
-.bigBtn:hover{background:rgba(255,255,255,0.28);}
-@keyframes blink{0%,100%{opacity:1;}50%{opacity:.15;}}
-
-#start{position:fixed;inset:0;background:rgba(0,5,20,0.92);z-index:200;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;}
-#start h1{font-family:'Orbitron';font-size:clamp(28px,9vw,54px);color:#00ff82;
-  text-shadow:0 0 24px #00ff82,0 0 60px rgba(0,255,130,0.25);letter-spacing:4px;}
-#start p{color:rgba(0,255,130,0.7);font-size:clamp(10px,3vw,13px);text-align:center;
-  line-height:2.2;max-width:380px;padding:0 16px;}
-.sBigBtn{padding:16px 52px;background:rgba(0,255,130,0.12);border:2px solid #00ff82;
-  color:#00ff82;font-family:'Orbitron';font-size:16px;border-radius:6px;cursor:pointer;
-  letter-spacing:3px;animation:glow 2s infinite;pointer-events:all;}
-@keyframes glow{0%,100%{box-shadow:0 0 18px rgba(0,255,130,0.3);}50%{box-shadow:0 0 38px rgba(0,255,130,0.65);}}
-.sBigBtn:active{background:rgba(0,255,130,0.3);}
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>SkyPilot 3D</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<canvas id="cvs"></canvas>
 
-<div id="hud">
-  <div class="hp" id="pSpeed"><div class="hl">AIRSPEED</div><div class="hv" id="vSpd">0</div><div class="hu">KNOTS</div></div>
-  <div class="hp" id="pAlt"><div class="hl">ALTITUDE</div><div class="hv" id="vAlt">0</div><div class="hu">FEET</div></div>
-  <div class="hp" id="pThr"><div class="hl">THROTTLE</div><div class="hv" id="vThr">0%</div><div id="thrBar"><div id="thrFill"></div></div></div>
-  <div id="ahWrap"><canvas id="ahCvs" width="120" height="120"></canvas></div>
-  <div id="compass">N \u00b7 000\u00b0 \u00b7 NE</div>
-  <div id="xhair"><div class="xring"></div></div>
-  <div id="warn">\u26a0 PULL UP \u26a0</div>
-  <div id="status">
-    <div class="sb son" id="stGear">GEAR \u25bc DOWN</div>
-    <div class="sb soff" id="stFlap">FLAPS 0\u00b0</div>
-    <div class="sb soff" id="stStall">STALL</div>
+  <!-- Portrait lock -->
+  <div id="rotate-msg">
+    <div class="rm-icon">📱</div>
+    <div class="rm-txt">Rotate to Landscape</div>
   </div>
-  <div id="keys">
-    <span>W/S</span> Pitch &nbsp;<span>A/D</span> Roll &nbsp;<span>Q/E</span> Yaw<br>
-    <span>\u2191/\u2193</span> Throttle &nbsp;<span>F</span> Flaps &nbsp;<span>G</span> Gear &nbsp;<span>R</span> Reset
-  </div>
-</div>
 
-<div id="mob">
-  <div id="joy"><div id="jKnob"></div></div>
-  <div id="yawRow">
-    <div class="yBtn" id="yL">\u25c0</div>
-    <div class="yBtn" id="yR">\u25b6</div>
-  </div>
-  <div id="actCol">
-    <div class="aBtn" id="aFlap">FLAP</div>
-    <div class="aBtn" id="aGear">GEAR</div>
-  </div>
-  <div id="thrCol">
-    <div id="thrLbl">THR</div>
-    <div id="thrTrack">
-      <div id="thrFill2"></div>
-      <div id="thrThumb"></div>
+  <!-- Three.js renders here -->
+  <canvas id="three-cvs"></canvas>
+
+  <!-- 2D HUD overlay -->
+  <canvas id="hud-cvs"></canvas>
+
+  <!-- Mobile on-screen controls (shown by JS on touch device) -->
+  <div id="mob">
+    <div id="joy-zone"><div id="joy-knob"></div></div>
+
+    <div id="center-btns">
+      <div class="btn-row">
+        <button class="mbtn" id="btn-yl">◀</button>
+        <button class="mbtn" id="btn-yr">▶</button>
+      </div>
+      <div class="btn-row">
+        <button class="mbtn sm" id="btn-flap">FLAP</button>
+        <button class="mbtn sm" id="btn-gear">GEAR</button>
+      </div>
+    </div>
+
+    <div id="thr-col">
+      <span class="thr-lbl">THR</span>
+      <div id="thr-track">
+        <div id="thr-fill"></div>
+        <div id="thr-thumb"></div>
+      </div>
     </div>
   </div>
-</div>
 
-<div id="crash">
-  <h1>CRASHED</h1>
-  <p>You hit the ground too hard, pilot.</p>
-  <button class="bigBtn" onclick="resetGame()">\u21ba RESTART</button>
-</div>
+  <!-- Crash overlay -->
+  <div id="crash">
+    <h1>CRASHED</h1>
+    <p>Impact too hard — try again, pilot</p>
+    <button onclick="resetFlight()">↺ RESTART</button>
+  </div>
 
-<div id="start">
-  <h1>SKYPILOT</h1>
-  <p>
-    <b>W / S</b> \u2013 Pitch Up / Down<br>
-    <b>A / D</b> \u2013 Roll Left / Right<br>
-    <b>Q / E</b> \u2013 Yaw Left / Right<br>
-    <b>\u2191 / \u2193</b> \u2013 Throttle &nbsp;|&nbsp; <b>F</b> \u2013 Flaps &nbsp;|&nbsp; <b>G</b> \u2013 Gear
-  </p>
-  <button class="sBigBtn" onclick="startGame()">\u25b6 TAKE OFF</button>
-</div>
+  <!-- Start screen -->
+  <div id="start">
+    <h1>SKYPILOT</h1>
+    <div class="ctrl-grid">
+      <span>W / S</span><span>Pitch</span>
+      <span>A / D</span><span>Roll</span>
+      <span>Q / E</span><span>Yaw</span>
+      <span>↑ / ↓</span><span>Throttle</span>
+      <span>F</span><span>Flaps</span>
+      <span>G</span><span>Gear</span>
+    </div>
+    <button onclick="startFlight()">▶ TAKE OFF</button>
+  </div>
 
-<script>
-// \u2500\u2500 CANVAS \u2500\u2500
-const cvs=document.getElementById('cvs'), ctx=cvs.getContext('2d');
-let W=0,H=0;
-function resize(){W=cvs.width=window.innerWidth;H=cvs.height=window.innerHeight;}
-resize(); window.addEventListener('resize',resize);
+  <!-- Desktop key hints -->
+  <div id="key-hints">
+    <span>W/S</span> Pitch &nbsp;<span>A/D</span> Roll &nbsp;<span>Q/E</span> Yaw<br>
+    <span>↑/↓</span> Throttle &nbsp;<span>F</span> Flaps &nbsp;<span>G</span> Gear &nbsp;<span>R</span> Reset
+  </div>
 
-// \u2500\u2500 STATE \u2500\u2500
-const P={x:0,y:0,z:80,pitch:0,roll:0,yaw:0,speed:0,throttle:0,flaps:0,gear:true,crashed:false,started:false};
-const keys={};
-document.addEventListener('keydown',e=>{
-  keys[e.key]=true;
-  if(e.key==='f'||e.key==='F')cycleFlaps();
-  if(e.key==='g'||e.key==='G')toggleGear();
-  if(e.key==='r'||e.key==='R')resetGame();
-  if('wsadqeWSADQEArrowUpArrowDown'.includes(e.key))e.preventDefault();
-});
-document.addEventListener('keyup',e=>{keys[e.key]=false;});
-function cycleFlaps(){P.flaps=P.flaps>=30?0:P.flaps+10;}
-function toggleGear(){if(P.z>80)P.gear=!P.gear;}
-
-// \u2500\u2500 JOYSTICK \u2500\u2500
-const joyEl=document.getElementById('joy'),jKnob=document.getElementById('jKnob');
-let joyActive=false,joyId=null,jI={x:0,y:0};
-const JR=50;
-function jC(){const r=joyEl.getBoundingClientRect();return{cx:r.left+r.width/2,cy:r.top+r.height/2};}
-function moveJ(t){
-  const{cx,cy}=jC();let dx=t.clientX-cx,dy=t.clientY-cy;
-  const d=Math.min(Math.sqrt(dx*dx+dy*dy),JR),a=Math.atan2(dy,dx);
-  const nx=Math.cos(a)*d,ny=Math.sin(a)*d;
-  jKnob.style.left=(50+nx/JR*42)+'%'; jKnob.style.top=(50+ny/JR*42)+'%';
-  jI={x:nx/JR,y:ny/JR};
-}
-joyEl.addEventListener('touchstart',e=>{e.preventDefault();const t=e.changedTouches[0];joyId=t.identifier;joyActive=true;moveJ(t);},{passive:false});
-document.addEventListener('touchmove',e=>{
-  if(!joyActive&&!thrDrag)return;e.preventDefault();
-  for(const t of e.changedTouches){
-    if(t.identifier===joyId&&joyActive)moveJ(t);
-    if(t.identifier===thrId&&thrDrag)setThrY(t.clientY);
-  }
-},{passive:false});
-document.addEventListener('touchend',e=>{
-  for(const t of e.changedTouches){
-    if(t.identifier===joyId){joyActive=false;jI={x:0,y:0};jKnob.style.left='50%';jKnob.style.top='50%';}
-    if(t.identifier===thrId)thrDrag=false;
-  }
-});
-
-// Yaw
-let yawL=false,yawR=false;
-document.getElementById('yL').addEventListener('touchstart',e=>{e.preventDefault();yawL=true;},{passive:false});
-document.getElementById('yL').addEventListener('touchend',()=>yawL=false);
-document.getElementById('yR').addEventListener('touchstart',e=>{e.preventDefault();yawR=true;},{passive:false});
-document.getElementById('yR').addEventListener('touchend',()=>yawR=false);
-
-// Throttle
-const tT=document.getElementById('thrTrack'),tF2=document.getElementById('thrFill2'),tTh=document.getElementById('thrThumb');
-let thrDrag=false,thrId=null;
-function setThrY(cy){
-  const r=tT.getBoundingClientRect();
-  const pct=Math.max(0,Math.min(1,1-(cy-r.top)/r.height));
-  P.throttle=pct*100; updateThrUI(pct);
-}
-function updateThrUI(pct){tF2.style.height=(pct*100)+'%';tTh.style.bottom=Math.max(0,pct*100-5)+'%';}
-tT.addEventListener('touchstart',e=>{e.preventDefault();thrDrag=true;thrId=e.changedTouches[0].identifier;setThrY(e.changedTouches[0].clientY);},{passive:false});
-document.getElementById('aFlap').addEventListener('touchstart',e=>{e.preventDefault();cycleFlaps();},{passive:false});
-document.getElementById('aGear').addEventListener('touchstart',e=>{e.preventDefault();toggleGear();},{passive:false});
-
-// \u2500\u2500 TERRAIN \u2500\u2500
-const TS=1800;
-function fh(x,y){let v=Math.sin(x*127.1+y*311.7)*43758.5453;return v-Math.floor(v);}
-function terrain(wx,wy){
-  const tx=Math.floor(wx/TS),ty=Math.floor(wy/TS);
-  const fx=(wx/TS)-tx,fy=(wy/TS)-ty;
-  const a=fh(tx,ty),b=fh(tx+1,ty),c=fh(tx,ty+1),d=fh(tx+1,ty+1);
-  return(a+fx*(b-a)+fy*((c+fx*(d-c))-(a+fx*(b-a))))*480;
-}
-
-// \u2500\u2500 PROJECTION \u2500\u2500
-function project(wx,wy,wz){
-  let dx=wx-P.x,dy=wy-P.y,dz=wz-P.z;
-  const cy2=Math.cos(-P.yaw),sy2=Math.sin(-P.yaw);
-  const rx=dx*cy2-dy*sy2,ry=dx*sy2+dy*cy2;
-  const cp=Math.cos(-P.pitch),sp=Math.sin(-P.pitch);
-  const fwd=ry*cp-dz*sp,up=ry*sp+dz*cp;
-  const cr=Math.cos(-P.roll),sr=Math.sin(-P.roll);
-  const sx=rx*cr-up*sr,sy3=rx*sr+up*cr;
-  if(fwd<8)return null;
-  const fov=Math.min(W,H)*0.88;
-  return{sx:W/2+sx*fov/fwd,sy:H/2-sy3*fov/fwd,d:fwd,s:fov/fwd};
-}
-
-// Clouds
-const clouds=[];
-for(let i=0;i<32;i++)clouds.push({
-  wx:(Math.random()-.5)*18000,wy:(Math.random()-.5)*18000,
-  wz:2800+Math.random()*7000,r:500+Math.random()*900,op:.55+Math.random()*.3
-});
-
-// \u2500\u2500 PHYSICS \u2500\u2500
-let last=0;
-const STALL=62,MAXSPD=340;
-function physics(dt){
-  if(!P.started||P.crashed)return;
-  if(keys['ArrowUp'])P.throttle=Math.min(100,P.throttle+70*dt);
-  if(keys['ArrowDown'])P.throttle=Math.max(0,P.throttle-70*dt);
-  const stalled=P.speed<STALL&&P.z>20;
-  const eff=stalled?.12:1;
-  if(keys['w']||keys['W'])P.pitch+=1.3*dt*eff;
-  if(keys['s']||keys['S'])P.pitch-=1.3*dt*eff;
-  if(keys['a']||keys['A'])P.roll -=1.6*dt*eff;
-  if(keys['d']||keys['D'])P.roll +=1.6*dt*eff;
-  if(keys['q']||keys['Q'])P.yaw  -=0.7*dt;
-  if(keys['e']||keys['E'])P.yaw  +=0.7*dt;
-  if(joyActive){P.pitch-=jI.y*1.3*dt*eff;P.roll+=jI.x*1.6*dt*eff;}
-  if(yawL)P.yaw-=0.7*dt;
-  if(yawR)P.yaw+=0.7*dt;
-  P.pitch=Math.max(-1.1,Math.min(1.1,P.pitch));
-  P.roll=Math.max(-1.2,Math.min(1.2,P.roll));
-  P.pitch*=(1-.22*dt); P.roll*=(1-.55*dt);
-  P.yaw+=Math.sin(P.roll)*.55*dt*(P.speed/200);
-  const thrust=P.throttle*.045;
-  const drag=.0012*P.speed*(1+P.flaps*.012)*(P.gear?1.10:1)+.6;
-  P.speed=Math.max(0,Math.min(MAXSPD,P.speed+(thrust-drag)*dt*18));
-  const vz=P.speed*Math.sin(P.pitch)*2.8*(stalled?.08:1);
-  P.z+=vz*dt*8;
-  P.x+=Math.sin(P.yaw)*P.speed*Math.cos(P.pitch)*dt*1.2;
-  P.y+=Math.cos(P.yaw)*P.speed*Math.cos(P.pitch)*dt*1.2;
-  const gnd=terrain(P.x,P.y);
-  if(P.z<=gnd){
-    if(P.speed>45||Math.abs(P.pitch)>.3||Math.abs(P.roll)>.35){doCrash();return;}
-    P.z=gnd;P.pitch=0;P.roll*=.85;P.speed*=.97;
-  }
-  P.z=Math.max(0,P.z);
-}
-function doCrash(){P.crashed=true;document.getElementById('crash').style.display='flex';}
-function resetGame(){
-  P.x=0;P.y=0;P.z=2000;P.pitch=0;P.roll=0;P.yaw=0;
-  P.speed=140;P.throttle=60;P.flaps=0;P.gear=false;P.crashed=false;
-  document.getElementById('crash').style.display='none';
-  updateThrUI(0.6);
-}
-function startGame(){
-  P.started=true;P.z=80;P.gear=true;P.speed=0;P.throttle=0;
-  document.getElementById('start').style.display='none';
-  if('ontouchstart' in window)document.getElementById('mob').style.display='block';
-}
-
-// \u2500\u2500 DRAW \u2500\u2500
-function drawSky(){
-  const t=Math.min(P.z/28000,1);
-  const gr=ctx.createLinearGradient(0,0,0,H);
-  gr.addColorStop(0,`rgb(${Math.round(8+t*(2-8))},${Math.round(18+t*(5-18))},${Math.round(55+t*(10-55))})`);
-  gr.addColorStop(1,`rgb(${Math.round(45+t*(10-45))},${Math.round(130+t*(28-130))},${Math.round(225+t*(45-225))})`);
-  ctx.fillStyle=gr;ctx.fillRect(0,0,W,H);
-}
-function drawClouds(){
-  for(const c of clouds){
-    const p=project(c.wx,c.wy,c.wz);
-    if(!p||p.d>16000||p.d<50)continue;
-    const sr=c.r*p.s;if(sr<5)continue;
-    ctx.globalAlpha=c.op*Math.min(1,(p.d-50)/300);
-    const gr=ctx.createRadialGradient(p.sx,p.sy,0,p.sx,p.sy,sr);
-    gr.addColorStop(0,'rgba(255,255,255,.95)');
-    gr.addColorStop(.4,'rgba(230,240,255,.5)');
-    gr.addColorStop(1,'rgba(210,225,255,0)');
-    ctx.fillStyle=gr;
-    ctx.beginPath();ctx.ellipse(p.sx,p.sy,sr,sr*.42,0,0,Math.PI*2);ctx.fill();
-  }
-  ctx.globalAlpha=1;
-}
-function drawTerrain(){
-  const step=500,range=12;
-  const ox=Math.round(P.x/step)*step,oy=Math.round(P.y/step)*step;
-  const cells=[];
-  for(let ix=-range;ix<range;ix++)
-    for(let iy=-range;iy<range;iy++){
-      const wx0=ox+ix*step,wy0=oy+iy*step;
-      const d2=(wx0+step/2-P.x)**2+(wy0+step/2-P.y)**2;
-      cells.push({wx0,wy0,d2});
-    }
-  cells.sort((a,b)=>b.d2-a.d2);
-  for(const{wx0,wy0}of cells){
-    const wx1=wx0+step,wy1=wy0+step;
-    const h00=terrain(wx0,wy0),h10=terrain(wx1,wy0),h11=terrain(wx1,wy1),h01=terrain(wx0,wy1);
-    const p00=project(wx0,wy0,h00),p10=project(wx1,wy0,h10),p11=project(wx1,wy1,h11),p01=project(wx0,wy1,h01);
-    if(!p00||!p10||!p11||!p01)continue;
-    const avgH=(h00+h10+h11+h01)/4;
-    const dist=Math.min(p00.d,p10.d,p11.d,p01.d);
-    const fog=Math.max(0,1-dist/9000);
-    let r,g,b;
-    if(avgH<30){r=34;g=115;b=36;}
-    else if(avgH<200){r=55;g=135;b=48;}
-    else if(avgH<380){r=125;g=112;b=72;}
-    else{r=188;g=188;b=198;}
-    ctx.fillStyle=`rgb(${Math.round(r*fog+115*(1-fog))},${Math.round(g*fog+145*(1-fog))},${Math.round(b*fog+178*(1-fog))})`;
-    ctx.strokeStyle='rgba(0,0,0,.07)';ctx.lineWidth=.4;
-    ctx.beginPath();ctx.moveTo(p00.sx,p00.sy);ctx.lineTo(p10.sx,p10.sy);
-    ctx.lineTo(p11.sx,p11.sy);ctx.lineTo(p01.sx,p01.sy);ctx.closePath();
-    ctx.fill();ctx.stroke();
-  }
-  // Runway
-  const RL=1400,RW=55;
-  const corners=[[-RW/2,0],[RW/2,0],[RW/2,RL],[-RW/2,RL]].map(([lx,ly])=>{
-    const wx=lx,wy=ly;return project(wx,wy,terrain(wx,wy));
-  });
-  if(corners.every(p=>p)){
-    ctx.fillStyle='#555';
-    ctx.beginPath();corners.forEach((p,i)=>i?ctx.lineTo(p.sx,p.sy):ctx.moveTo(p.sx,p.sy));ctx.closePath();ctx.fill();
-    for(let t=.05;t<.98;t+=.08){
-      const p=project(0,t*RL,terrain(0,t*RL));
-      if(p){ctx.fillStyle='#fff';ctx.fillRect(p.sx-1.5,p.sy-4,3,8);}
-    }
-  }
-}
-function drawAH(){
-  const ac=document.getElementById('ahCvs'),ax=ac.getContext('2d');
-  const S=120,CR=56;ax.clearRect(0,0,S,S);
-  ax.save();ax.beginPath();ax.arc(S/2,S/2,CR,0,Math.PI*2);ax.clip();
-  ax.save();ax.translate(S/2,S/2);ax.rotate(P.roll);
-  const po=P.pitch*70;
-  ax.fillStyle='#2474ae';ax.fillRect(-CR,-CR+po,CR*2,CR*2);
-  ax.fillStyle='#8B5E3C';ax.fillRect(-CR,po,CR*2,CR*2);
-  ax.strokeStyle='rgba(255,255,255,.9)';ax.lineWidth=2;
-  ax.beginPath();ax.moveTo(-CR,po);ax.lineTo(CR,po);ax.stroke();
-  for(let i=-4;i<=4;i++){if(!i)continue;
-    const y=po+i*15,lw=i%2===0?26:16;
-    ax.strokeStyle='rgba(255,255,255,.55)';ax.lineWidth=1;
-    ax.beginPath();ax.moveTo(-lw,y);ax.lineTo(lw,y);ax.stroke();
-  }
-  ax.restore();
-  ax.strokeStyle='#ffcc00';ax.lineWidth=2.5;
-  ax.beginPath();
-  ax.moveTo(S/2-32,S/2);ax.lineTo(S/2-8,S/2);
-  ax.moveTo(S/2+8,S/2);ax.lineTo(S/2+32,S/2);
-  ax.mov
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>
