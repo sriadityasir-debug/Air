@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>SkyPilot — Flight Simulator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #000;
+    overflow: hidden;
+    font-family: 'Share Tech Mono', monospace;
+    color: #00ff88;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  canvas {
+    display: block;
+    position: fixed;
+    top: 0; left: 0;
+  }
+
+  /* HUD */
+  #hud {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .hud-panel {
+    position: absolute;
+    border: 1px solid rgba(0,255,136,0.3);
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    padding: 10px 14px;
+    border-radius: 4px;
+  }
+
+  .hud-label { font-size: 9px; color: rgba(0,255,136,0.5); letter-spacing: 2px; text-transform: uppercase; }
+  .hud-value { font-size: 22px; font-weight: bold; font-family: 'Orbitron', monospace; color: #00ff88; line-height: 1.1; }
+  .hud-unit { font-size: 9px; color: rgba(0,255,136,0.6); }
+
+  #panel-speed { top: 20px; left: 20px; }
+  #panel-alt { top: 20px; left: 160px; }
+  #panel-heading { top: 20px; left: 300px; }
+  #panel-throttle { top: 20px; right: 20px; width: 120px; }
+
+  /* Throttle bar */
+  #throttle-bar-bg {
+    width: 100%;
+    height: 8px;
+    background: rgba(0,255,136,0.15);
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+  #throttle-bar {
+    height: 8px;
+    background: linear-gradient(90deg, #00ff88, #00ccff);
+    border-radius: 4px;
+    transition: width 0.1s;
+    width: 0%;
+    box-shadow: 0 0 8px #00ff88;
+  }
+
+  /* Artificial Horizon */
+  #horizon-container {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140px;
+    height: 140px;
+  }
+  #horizon-canvas { border-radius: 50%; border: 2px solid rgba(0,255,136,0.4); }
+
+  /* Compass */
+  #compass {
+    position: absolute;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    text-align: center;
+  }
+  #compass-strip {
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(0,255,136,0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-family: 'Share Tech Mono';
+    font-size: 13px;
+    color: #00ff88;
+    letter-spacing: 3px;
+  }
+  #compass-arrow {
+    font-size: 9px;
+    color: rgba(0,255,136,0.5);
+    margin-top: 2px;
+  }
+
+  /* Warning */
+  #warning {
+    position: absolute;
+    top: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Orbitron';
+    font-size: 14px;
+    color: #ff4444;
+    letter-spacing: 3px;
+    opacity: 0;
+    text-shadow: 0 0 10px #ff4444;
+    transition: opacity 0.3s;
+  }
+
+  /* Crosshair */
+  #crosshair {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+  }
+  #crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: rgba(0,255,136,0.6);
+  }
+  #crosshair::before { width: 100%; height: 1px; top: 50%; left: 0; }
+  #crosshair::after { width: 1px; height: 100%; left: 50%; top: 0; }
+  .crosshair-circle {
+    position: absolute;
+    border: 1px solid rgba(0,255,136,0.4);
+    border-radius: 50%;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 60px;
+  }
+
+  /* CONTROLS INFO */
+  #controls-info {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    font-size: 10px;
+    color: rgba(0,255,136,0.5);
+    line-height: 1.8;
+    letter-spacing: 1px;
+  }
+  #controls-info span { color: rgba(0,255,136,0.9); }
+
+  /* MOBILE CONTROLS */
+  #mobile-controls {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    pointer-events: none;
+    display: none;
+  }
+
+  .mob-btn {
+    position: absolute;
+    background: rgba(0,255,136,0.12);
+    border: 1px solid rgba(0,255,136,0.4);
+    border-radius: 50%;
+    color: #00ff88;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .mob-btn:active { background: rgba(0,255,136,0.35); }
+
+  /* Pitch/Roll joystick area */
+  #joy-area {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 160px;
+    height: 160px;
+    background: rgba(0,255,136,0.06);
+    border: 1px solid rgba(0,255,136,0.25);
+    border-radius: 50%;
+    pointer-events: all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #joy-knob {
+    width: 52px;
+    height: 52px;
+    background: rgba(0,255,136,0.25);
+    border: 2px solid rgba(0,255,136,0.7);
+    border-radius: 50%;
+    pointer-events: none;
+    position: absolute;
+    transition: transform 0.05s;
+    box-shadow: 0 0 12px rgba(0,255,136,0.4);
+  }
+
+  /* Throttle slider */
+  #throttle-slider-wrap {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 200px;
+    background: rgba(0,255,136,0.06);
+    border: 1px solid rgba(0,255,136,0.25);
+    border-radius: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: all;
+    flex-direction: column;
+  }
+  #throttle-label-mob {
+    font-size: 9px;
+    color: rgba(0,255,136,0.5);
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  #throttle-track {
+    width: 16px;
+    height: 140px;
+    background: rgba(0,255,136,0.1);
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+  }
+  #throttle-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, #00ff88, #00ccff);
+    border-radius: 8px;
+    transition: height 0.05s;
+    box-shadow: 0 0 8px rgba(0,255,136,0.5);
+  }
+  #throttle-thumb {
+    width: 28px;
+    height: 20px;
+    background: rgba(0,255,136,0.3);
+    border: 2px solid #00ff88;
+    border-radius: 6px;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 0;
+    cursor: grab;
+    box-shadow: 0 0 8px rgba(0,255,136,0.5);
+  }
+
+  /* Yaw buttons */
+  #yaw-left { bottom: 90px; left: 190px; width: 52px; height: 52px; font-size: 18px; border-radius: 10px; }
+  #yaw-right { bottom: 90px; left: 250px; width: 52px; height: 52px; font-size: 18px; border-radius: 10px; }
+
+  /* Flaps / Gear */
+  #flap-btn { bottom: 90px; right: 80px; width: 52px; height: 52px; font-size: 11px; border-radius: 10px; }
+  #gear-btn { bottom: 30px; right: 80px; width: 52px; height: 52px; font-size: 11px; border-radius: 10px; }
+
+  /* Status indicators */
+  #status-panel {
+    position: absolute;
+    top: 180px;
+    right: 20px;
+    text-align: right;
+  }
+  .status-item {
+    font-size: 10px;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .status-on { color: #00ff88; }
+  .status-off { color: rgba(0,255,136,0.3); }
+
+  /* Crash overlay */
+  #crash-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,0,0,0.3);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #crash-overlay h1 {
+    font-family: 'Orbitron';
+    font-size: 48px;
+    color: #fff;
+    text-shadow: 0 0 30px #ff0000;
+    animation: blink 0.5s infinite;
+  }
+  #crash-overlay p {
+    font-family: 'Share Tech Mono';
+    color: rgba(255,255,255,0.8);
+    margin-top: 20px;
+    font-size: 14px;
+  }
+  #restart-btn {
+    margin-top: 30px;
+    padding: 14px 40px;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid white;
+    color: white;
+    font-family: 'Orbitron';
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    pointer-events: all;
+    letter-spacing: 2px;
+  }
+  #restart-btn:hover { background: rgba(255,255,255,0.25); }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+
+  /* Start screen */
+  #start-screen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+  #start-screen h1 {
+    font-family: 'Orbitron';
+    font-size: 48px;
+    color: #00ff88;
+    text-shadow: 0 0 30px #00ff88, 0 0 60px rgba(0,255,136,0.3);
+    letter-spacing: 4px;
+  }
+  #start-screen p {
+    font-family: 'Share Tech Mono';
+    color: rgba(0,255,136,0.7);
+    font-size: 13px;
+    text-align: center;
+    line-height: 2;
+    max-width: 400px;
+  }
+  #start-btn {
+    margin-top: 10px;
+    padding: 16px 50px;
+    background: rgba(0,255,136,0.15);
+    border: 2px solid #00ff88;
+    color: #00ff88;
+    font-family: 'Orbitron';
+    font-size: 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    box-shadow: 0 0 20px rgba(0,255,136,0.3);
+    animation: glow 2s infinite;
+  }
+  @keyframes glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+    50% { box-shadow: 0 0 40px rgba(0,255,136,0.6); }
+  }
+  #start-btn:hover { background: rgba(0,255,136,0.3); }
+
+  @media (max-width: 768px) {
+    #mobile-controls { display: block; }
+    #controls-info { display: none; }
+    #panel-heading { display: none; }
+    #start-screen h1 { font-size: 32px; }
+    #crash-overlay h1 { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="hud-panel" id="panel-speed">
+    <div class="hud-label">Airspeed</div>
+    <div class="hud-value" id="val-speed">0</div>
+    <div class="hud-unit">KNOTS</div>
+  </div>
+
+  <div class="hud-panel" id="panel-alt">
+    <div class="hud-label">Altitude</div>
+    <div class="hud-value" id="val-alt">0</div>
+    <div class="hud-unit">FEET</div>
+  </div>
+
+  <div class="hud-panel" id="panel-heading">
+    <div class="hud-label">Heading</div>
+    <div class="hud-value" id="val-heading">360</div>
+    <div class="hud-unit">DEG</div>
+  </div>
+
+  <div class="hud-panel" id="panel-throttle">
+    <div class="hud-label">Throttle</div>
+    <div class="hud-value" id="val-throttle">0%</div>
+    <div id="throttle-bar-bg"><div id="throttle-bar"></div></div>
+  </div>
+
+  <!-- Artificial horizon -->
+  <div id="horizon-container">
+    <canvas id="horizon-canvas" width="140" height="140"></canvas>
+  </div>
+
+  <!-- Compass -->
+  <div id="compass">
+    <div id="compass-strip">N &nbsp; NE &nbsp; E</div>
+    <div id="compass-arrow">▼</div>
+  </div>
+
+  <!-- Crosshair -->
+  <div id="crosshair"><div class="crosshair-circle"></div></div>
+
+  <!-- Warning -->
+  <div id="warning">⚠ PULL UP ⚠</div>
+
+  <!-- Status -->
+  <div id="status-panel">
+    <div class="status-item" id="st-gear">GEAR ▼</div>
+    <div class="status-item" id="st-flaps">FLAPS 0°</div>
+    <div class="status-item" id="st-engine">ENGINE ✓</div>
+    <div class="status-item" id="st-stall">STALL</div>
+  </div>
+
+  <!-- Controls legend (desktop) -->
+  <div id="controls-info">
+    <span>W/S</span> — Pitch Up/Down<br>
+    <span>A/D</span> — Roll Left/Right<br>
+    <span>Q/E</span> — Yaw Left/Right<br>
+    <span>↑/↓</span> — Throttle +/-<br>
+    <span>F</span> — Flaps Toggle<br>
+    <span>G</span> — Landing Gear<br>
+    <span>R</span> — Reset
+  </div>
+</div>
+
+<!-- Crash overlay -->
+<div id="crash-overlay">
+  <h1>CRASHED</h1>
+  <p>Better luck next time, pilot.</p>
+  <button id="restart-btn" onclick="resetFlight()">RESTART</button>
+</div>
+
+<!-- Start screen -->
+<div id="start-screen">
+  <h1>SKYPILOT</h1>
+  <p>
+    W/S — Pitch &nbsp;|&nbsp; A/D — Roll &nbsp;|&nbsp; Q/E — Yaw<br>
+    ↑/↓ — Throttle &nbsp;|&nbsp; F — Flaps &nbsp;|&nbsp; G — Gear<br>
+    Mobile: Use the on-screen joystick & throttle
+  </p>
+  <button id="start-btn" onclick="startGame()">TAKE OFF</button>
+</div>
+
+<!-- Mobile controls -->
+<div id="mobile-controls">
+  <div id="joy-area">
+    <div id="joy-knob"></div>
+  </div>
+  <div id="yaw-left" class="mob-btn">◁</div>
+  <div id="yaw-right" class="mob-btn">▷</div>
+  <div id="throttle-slider-wrap">
+    <div id="throttle-label-mob">THR</div>
+    <div id="throttle-track">
+      <div id="throttle-fill" style="height:0%"></div>
+      <div id="throttle-thumb"></div>
+    </div>
+  </div>
+  <div id="flap-btn" class="mob-btn" style="font-size:10px;">FLAP</div>
+  <div id="gear-btn" class="mob-btn" style="font-size:10px;">GEAR</div>
+</div>
+
+<script>
+// ====== CANVAS SETUP ======
+const canvas = document.getElementById('sky');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// ====== FLIGHT STATE ======
+let plane = {
+  x: 0, y: 0, z: 2000,   // world pos (z = altitude in feet)
+  vx: 0, vy: 0, vz: 0,
+  pitch: 0,   // radians, positive = nose up
+  roll: 0,    // radians, positive = right
+  yaw: 0,     // radians (heading)
+  speed: 0,   // knots
+  throttle: 0,
+  flaps: 0,   // 0, 10, 20, 30
+  gear: true,
+  crashed: false,
+  gameStarted: false
+};
+
+const GRAVITY = 32.174; // ft/s²
+const MAX_SPEED = 320;
+const STALL_SPEED = 65;
+const keys = {};
+
+// ====== KEYBOARD ======
+document.addEventListener('keydown', e => {
+  keys[e.key] = true;
+  if (e.key === 'f' || e.key === 'F') toggleFlaps();
+  if (e.key === 'g' || e.key === 'G') toggleGear();
+  if (e.key === 'r' || e.key === 'R') resetFlight();
+  e.preventDefault();
+});
+document.addEventListener('keyup', e => { keys[e.key] = false; });
+
+function toggleFlaps() {
+  plane.flaps = plane.flaps >= 30 ? 0 : plane.flaps + 10;
+}
+function toggleGear() {
+  if (plane.z > 100) plane.gear = !plane.gear;
+}
+
+// ====== MOBILE JOYSTICK ======
+const joyArea = document.getElementById('joy-area');
+const joyKnob = document.getElementById('joy-knob');
+let joyActive = false, joyTouchId = null;
+let joyInput = { x: 0, y: 0 };
+const JOY_R = 54;
+
+function getJoyCenter() {
+  const r = joyArea.getBoundingClientRect();
+  return { cx: r.left + r.width / 2, cy: r.top + r.height / 2 };
+}
+
+joyArea.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  joyTouchId = t.identifier;
+  joyActive = true;
+  updateJoy(t);
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  if (!joyActive) return;
+  for (let t of e.changedTouches) {
+    if (t.identifier === joyTouchId) { e.preventDefault(); updateJoy(t); break; }
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  for (let t of e.changedTouches) {
+    if (t.identifier === joyTouchId) {
+      joyActive = false;
+      joyInput = { x: 0, y: 0 };
+      joyKnob.style.transform = 'translate(-50%, -50%)';
+      break;
+    }
+  }
+});
+
+function updateJoy(touch) {
+  const { cx, cy } = getJoyCenter();
+  let dx = touch.clientX - cx, dy = touch.clientY - cy;
+  const dist = Math.min(Math.sqrt(dx * dx + dy * dy), JOY_R);
+  const angle = Math.atan2(dy, dx);
+  const nx = Math.cos(angle) * dist, ny = Math.sin(angle) * dist;
+  joyKnob.style.transform = `translate(calc(-50% + ${nx}px), calc(-50% + ${ny}px))`;
+  joyInput.x = nx / JOY_R;
+  joyInput.y = ny / JOY_R;
+}
+
+// Yaw buttons
+const yawL = document.getElementById('yaw-left');
+const yawR = document.getElementById('yaw-right');
+let yawLeft = false, yawRight = false;
+yawL.addEventListener('touchstart', e => { e.preventDefault(); yawLeft = true; }, { passive: false });
+yawL.addEventListener('touchend', () => yawLeft = false);
+yawR.addEventListener('touchstart', e => { e.preventDefault(); yawRight = true; }, { passive: false });
+yawR.addEventListener('touchend', () => yawRight = false);
+
+// Throttle slider
+const throttleTrack = document.getElementById('throttle-track');
+const throttleThumb = document.getElementById('throttle-thumb');
+const throttleFill = document.getElementById('throttle-fill');
+let thrDragging = false, thrTouchId = null;
+
+function setThrottleFromY(clientY) {
+  const rect = throttleTrack.getBoundingClientRect();
+  let pct = 1 - (clientY - rect.top) / rect.height;
+  pct = Math.max(0, Math.min(1, pct));
+  plane.throttle = pct * 100;
+  updateThrottleUI(pct);
+}
+
+function updateThrottleUI(pct) {
+  const h = pct * 100;
+  throttleFill.style.height = h + '%';
+  throttleThumb.style.bottom = (h - 1) + '%';
+}
+
+throttleTrack.addEventListener('touchstart', e => {
+  e.preventDefault();
+  thrDragging = true;
+  thrTouchId = e.changedTouches[0].identifier;
+  setThrottleFromY(e.changedTouches[0].clientY);
+}, { passive: false });
+
+document.addEventListener('touchmove', e => {
+  if (!thrDragging) return;
+  for (let t of e.changedTouches) {
+    if (t.identifier === thrTouchId) { e.preventDefault(); setThrottleFromY(t.clientY); break; }
+  }
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  for (let t of e.changedTouches) {
+    if (t.identifier === thrTouchId) { thrDragging = false; break; }
+  }
+});
+
+// Flap / Gear mobile
+document.getElementById('flap-btn').addEventListener('touchstart', e => { e.preventDefault(); toggleFlaps(); }, { passive: false });
+document.getElementById('gear-btn').addEventListener('touchstart', e => { e.preventDefault(); toggleGear(); }, { passive: false });
+
+// ====== TERRAIN ======
+// We use a procedural infinite grid of tiles
+const TILE_SIZE = 2000; // feet
+const GRID = 9;
+let terrainSeed = 42;
+function hash(x, y) {
+  let h = Math.sin(x * 127.1 + y * 311.7 + terrainSeed) * 43758.5453;
+  return h - Math.floor(h);
+}
+function terrainHeight(x, y) {
+  const tx = Math.floor(x / TILE_SIZE), ty = Math.floor(y / TILE_SIZE);
+  const fx = (x / TILE_SIZE) - tx, fy = (y / TILE_SIZE) - ty;
+  const a = hash(tx, ty), b = hash(tx+1, ty), c = hash(tx, ty+1), d = hash(tx+1, ty+1);
+  const ab = a + fx*(b-a), cd = c + fx*(d-c);
+  return (ab + fy*(cd-ab)) * 600; // 0-600 ft hills
+}
+
+// ====== WORLD ======
+const RUNWAY_LEN = 1500, RUNWAY_W = 60;
+let runway = { x: 0, y: 0, heading: 0 };
+
+// ====== PHYSICS ======
+let lastTime = 0;
+function physics(dt) {
+  if (plane.crashed || !plane.gameStarted) return;
+
+  const s = dt;
+  const kts = plane.speed;
+  const isStalled = kts < STALL_SPEED && plane.z > 10;
+
+  // Throttle input (keyboard)
+  if (keys['ArrowUp']) plane.throttle = Math.min(100, plane.throttle + 60 * s);
+  if (keys['ArrowDown']) plane.throttle = Math.max(0, plane.throttle - 60 * s);
+
+  // Control inputs
+  const pitchRate = 1.2, rollRate = 1.5, yawRate = 0.6;
+  const effectiveness = isStalled ? 0.2 : 1;
+
+  if (keys['w'] || keys['W']) plane.pitch += pitchRate * s * effectiveness;
+  if (keys['s'] || keys['S']) plane.pitch -= pitchRate * s * effectiveness;
+  if (keys['a'] || keys['A']) plane.roll -= rollRate * s * effectiveness;
+  if (keys['d'] || keys['D']) plane.roll += rollRate * s * effectiveness;
+  if (keys['q'] || keys['Q']) plane.yaw -= yawRate * s * effectiveness;
+  if (keys['e'] || keys['E']) plane.yaw += yawRate * s * effectiveness;
+
+  // Mobile inputs
+  if (joyActive) {
+    plane.pitch -= joyInput.y * pitchRate * s * effectiveness;
+    plane.roll += joyInput.x * rollRate * s * effectiveness;
+  }
+  if (yawLeft) plane.yaw -= yawRate * s;
+  if (yawRight) plane.yaw += yawRate * s;
+
+  // Clamp pitch/roll
+  plane.pitch = Math.max(-Math.PI/3, Math.min(Math.PI/2, plane.pitch));
+  plane.roll = Math.max(-Math.PI*0.7, Math.min(Math.PI*0.7, plane.roll));
+
+  // Roll induces yaw (coordinated turn)
+  plane.yaw += Math.sin(plane.roll) * 0.5 * s * (kts / 200);
+
+  // Stability (self-leveling tendency)
+  plane.roll *= 1 - 0.6 * s;
+  plane.pitch *= 1 - 0.15 * s;
+
+  // Flap drag / lift effect
+  const flapLift = 1 + plane.flaps * 0.008;
+  const flapDrag = 1 + plane.flaps * 0.015;
+  const gearDrag = plane.gear ? 1.08 : 1;
+
+  // Thrust (knots per second)
+  const thrust = plane.throttle * 0.04;
+  // Drag
+  const drag = (0.001 * kts * flapDrag * gearDrag) + 0.5;
+
+  // Speed
+  const pitchEffect = Math.sin(plane.pitch);
+  plane.speed += (thrust - drag) 
