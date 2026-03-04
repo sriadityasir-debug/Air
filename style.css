@@ -1,0 +1,205 @@
+/* ====================================================
+   SKYPILOT 3D — style.css
+   ==================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;}
+
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  background:#000c1a;
+  font-family:'Share Tech Mono','Courier New',monospace;
+  color:#00ff88;
+  user-select:none;-webkit-user-select:none;
+  touch-action:none;
+}
+
+/* ── CANVASES ── */
+#three-cvs{
+  position:fixed;top:0;left:0;
+  width:100%;height:100%;
+  display:block;
+}
+#hud-cvs{
+  position:fixed;top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:10;display:block;
+}
+
+/* ── ROTATE PROMPT ── */
+#rotate-msg{
+  display:none;
+  position:fixed;inset:0;
+  background:#000c1a;z-index:2000;
+  flex-direction:column;align-items:center;justify-content:center;gap:24px;
+}
+@media(orientation:portrait){#rotate-msg{display:flex;}}
+.rm-icon{font-size:72px;animation:tilt 2s ease-in-out infinite;}
+.rm-txt{
+  font-family:'Orbitron',monospace;font-size:clamp(14px,4vw,22px);
+  color:#00ff88;letter-spacing:3px;text-align:center;
+}
+@keyframes tilt{0%,100%{transform:rotate(0);}50%{transform:rotate(-90deg);}}
+
+/* ── MOBILE CONTROLS ── */
+#mob{
+  position:fixed;bottom:0;left:0;right:0;height:180px;
+  display:none; /* set to flex by JS */
+  flex-direction:row;
+  align-items:flex-end;
+  justify-content:space-between;
+  padding:0 14px 14px;
+  z-index:20;
+}
+
+/* Joystick */
+#joy-zone{
+  width:128px;height:128px;
+  background:rgba(0,255,136,0.06);
+  border:1.5px solid rgba(0,255,136,0.32);
+  border-radius:50%;
+  position:relative;
+  flex-shrink:0;
+  touch-action:none;
+}
+#joy-knob{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:42px;height:42px;
+  background:rgba(0,255,136,0.22);
+  border:2px solid rgba(0,255,136,0.85);
+  border-radius:50%;
+  pointer-events:none;
+  box-shadow:0 0 12px rgba(0,255,136,0.45);
+}
+
+/* Center button cluster */
+#center-btns{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  margin-bottom:0;
+}
+.btn-row{display:flex;gap:8px;}
+
+.mbtn{
+  width:54px;height:54px;
+  background:rgba(0,255,136,0.09);
+  border:1.5px solid rgba(0,255,136,0.38);
+  border-radius:10px;
+  color:#00ff88;font-size:18px;
+  font-family:'Share Tech Mono',monospace;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:none;
+}
+.mbtn.sm{font-size:10px;letter-spacing:1px;}
+.mbtn:active,.mbtn.pressed{background:rgba(0,255,136,0.35);}
+
+/* Throttle slider */
+#thr-col{
+  display:flex;flex-direction:column;align-items:center;gap:5px;
+  flex-shrink:0;
+  touch-action:none;
+}
+.thr-lbl{font-size:9px;color:rgba(0,255,136,0.5);letter-spacing:2px;}
+#thr-track{
+  width:16px;height:145px;
+  background:rgba(0,255,136,0.08);
+  border:1px solid rgba(0,255,136,0.32);
+  border-radius:8px;
+  position:relative;cursor:pointer;
+}
+#thr-fill{
+  position:absolute;bottom:0;left:0;right:0;height:0%;
+  background:linear-gradient(to top,#00ff88,#00ccff);
+  border-radius:8px;
+  box-shadow:0 0 8px rgba(0,255,136,0.5);
+}
+#thr-thumb{
+  position:absolute;left:50%;bottom:0;
+  transform:translateX(-50%);
+  width:30px;height:17px;
+  background:rgba(0,255,136,0.28);
+  border:2px solid #00ff88;
+  border-radius:5px;
+  box-shadow:0 0 8px rgba(0,255,136,0.4);
+}
+
+/* ── CRASH SCREEN ── */
+#crash{
+  position:fixed;inset:0;
+  background:rgba(140,0,0,0.55);
+  z-index:100;display:none;
+  flex-direction:column;align-items:center;justify-content:center;gap:18px;
+}
+#crash h1{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(36px,10vw,64px);
+  color:#fff;letter-spacing:5px;
+  text-shadow:0 0 40px #ff0000,0 0 80px #ff000066;
+  animation:blink .5s steps(1) infinite;
+}
+#crash p{color:rgba(255,255,255,0.7);font-size:13px;letter-spacing:1px;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.08;}}
+
+/* ── START SCREEN ── */
+#start{
+  position:fixed;inset:0;
+  background:rgba(0,4,14,0.93);
+  z-index:100;display:flex;
+  flex-direction:column;align-items:center;justify-content:center;gap:22px;
+}
+#start h1{
+  font-family:'Orbitron',monospace;
+  font-size:clamp(28px,8vw,60px);
+  color:#00ff88;letter-spacing:5px;
+  text-shadow:0 0 30px #00ff88,0 0 70px rgba(0,255,136,0.3);
+}
+.ctrl-grid{
+  display:grid;grid-template-columns:auto auto;
+  gap:3px 22px;text-align:left;
+  font-size:clamp(10px,2.2vw,13px);color:rgba(0,255,136,0.65);
+  letter-spacing:1px;
+}
+.ctrl-grid span:nth-child(odd){color:#00ff88;font-weight:bold;text-align:right;}
+
+/* ── SHARED BUTTON ── */
+#crash button,#start button{
+  padding:13px 48px;
+  background:rgba(0,255,136,0.11);
+  border:2px solid #00ff88;color:#00ff88;
+  font-family:'Orbitron',monospace;
+  font-size:clamp(12px,2.8vw,15px);
+  border-radius:6px;cursor:pointer;letter-spacing:3px;
+  animation:glow 2s ease-in-out infinite;
+  -webkit-tap-highlight-color:transparent;
+}
+#crash button{border-color:#fff;color:#fff;background:rgba(255,255,255,0.1);}
+#crash button:active{background:rgba(255,255,255,0.3);}
+#start button:active{background:rgba(0,255,136,0.3);}
+@keyframes glow{
+  0%,100%{box-shadow:0 0 16px rgba(0,255,136,0.28);}
+  50%{box-shadow:0 0 36px rgba(0,255,136,0.7);}
+}
+
+/* ── KEY HINTS (desktop) ── */
+#key-hints{
+  position:fixed;bottom:12px;left:12px;
+  font-size:10px;color:rgba(0,255,136,0.38);
+  line-height:2;letter-spacing:1px;
+  pointer-events:none;z-index:11;
+}
+#key-hints span{color:rgba(0,255,136,0.75);}
+@media(max-width:800px){#key-hints{display:none;}}
+
+/* ── COMPACT MOBILE ── */
+@media(max-height:420px){
+  #mob{height:160px;padding:0 10px 10px;}
+  #joy-zone{width:110px;height:110px;}
+  #joy-knob{width:36px;height:36px;}
+  .mbtn{width:46px;height:46px;font-size:16px;}
+  .mbtn.sm{font-size:9px;}
+  #thr-track{height:120px;}
+}
