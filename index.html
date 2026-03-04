@@ -4,28 +4,34 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>SkyPilot 3D</title>
+  <title>SkyPilot Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Portrait lock -->
+  <!-- Rotate prompt -->
   <div id="rotate-msg">
     <div class="rm-icon">📱</div>
     <div class="rm-txt">Rotate to Landscape</div>
   </div>
 
-  <!-- Three.js renders here -->
+  <!-- Three.js canvas -->
   <canvas id="three-cvs"></canvas>
 
-  <!-- 2D HUD overlay -->
+  <!-- HUD overlay -->
   <canvas id="hud-cvs"></canvas>
 
-  <!-- Mobile on-screen controls (shown by JS on touch device) -->
-  <div id="mob">
-    <div id="joy-zone"><div id="joy-knob"></div></div>
+  <!-- Camera mode badge -->
+  <div id="cam-badge">COCKPIT VIEW</div>
 
+  <!-- View toggle (visible during flight) -->
+  <div id="view-toggle" onclick="toggleCam()" title="Toggle View [V]">
+    <span id="vt-icon">👁</span>
+  </div>
+
+  <!-- Mobile controls -->
+  <div id="mob">
+    <div id="joy-zone"><div id="joy-knob"></div><div class="joy-ring"></div></div>
     <div id="center-btns">
       <div class="btn-row">
         <button class="mbtn" id="btn-yl">◀</button>
@@ -35,42 +41,103 @@
         <button class="mbtn sm" id="btn-flap">FLAP</button>
         <button class="mbtn sm" id="btn-gear">GEAR</button>
       </div>
+      <div class="btn-row">
+        <button class="mbtn sm" id="btn-view">VIEW</button>
+        <button class="mbtn sm" id="btn-brk">BRK</button>
+      </div>
     </div>
-
     <div id="thr-col">
       <span class="thr-lbl">THR</span>
       <div id="thr-track">
         <div id="thr-fill"></div>
         <div id="thr-thumb"></div>
       </div>
+      <span class="thr-lbl" id="thr-pct">0%</span>
     </div>
   </div>
 
   <!-- Crash overlay -->
   <div id="crash">
-    <h1>CRASHED</h1>
-    <p>Impact too hard — try again, pilot</p>
-    <button onclick="resetFlight()">↺ RESTART</button>
+    <div class="crash-inner">
+      <h1>CRASHED</h1>
+      <p id="crash-reason">Impact too hard</p>
+      <div class="crash-btns">
+        <button onclick="resetFlight()">↺ RESTART</button>
+        <button onclick="showSelect()">✈ NEW PLANE</button>
+      </div>
+    </div>
   </div>
 
-  <!-- Start screen -->
-  <div id="start">
-    <h1>SKYPILOT</h1>
-    <div class="ctrl-grid">
-      <span>W / S</span><span>Pitch</span>
-      <span>A / D</span><span>Roll</span>
-      <span>Q / E</span><span>Yaw</span>
-      <span>↑ / ↓</span><span>Throttle</span>
-      <span>F</span><span>Flaps</span>
-      <span>G</span><span>Gear</span>
+  <!-- Plane selection -->
+  <div id="select-screen">
+    <h1>SKYPILOT <span>PRO</span></h1>
+    <p class="sub">Select your aircraft</p>
+    <div id="plane-cards">
+      <div class="pcard" data-id="b737" onclick="selectPlane('b737')">
+        <div class="pcard-icon">✈</div>
+        <div class="pcard-name">Boeing 737</div>
+        <div class="pcard-type">Commercial Jet</div>
+        <div class="pcard-stats">
+          <div class="stat"><span>MAX</span><b>340 kts</b></div>
+          <div class="stat"><span>LAND</span><b>145 kts</b></div>
+          <div class="stat"><span>DIFF</span><b>★★☆</b></div>
+        </div>
+        <div class="pcard-desc">Wide-body airliner. Stable &amp; reliable.</div>
+      </div>
+      <div class="pcard" data-id="f16" onclick="selectPlane('f16')">
+        <div class="pcard-icon">🚀</div>
+        <div class="pcard-name">F-16 Falcon</div>
+        <div class="pcard-type">Fighter Jet</div>
+        <div class="pcard-stats">
+          <div class="stat"><span>MAX</span><b>650 kts</b></div>
+          <div class="stat"><span>LAND</span><b>180 kts</b></div>
+          <div class="stat"><span>DIFF</span><b>★★★</b></div>
+        </div>
+        <div class="pcard-desc">Supersonic fighter. Fast &amp; agile.</div>
+      </div>
+      <div class="pcard" data-id="c172" onclick="selectPlane('c172')">
+        <div class="pcard-icon">🛩</div>
+        <div class="pcard-name">Cessna 172</div>
+        <div class="pcard-type">Propeller</div>
+        <div class="pcard-stats">
+          <div class="stat"><span>MAX</span><b>130 kts</b></div>
+          <div class="stat"><span>LAND</span><b>65 kts</b></div>
+          <div class="stat"><span>DIFF</span><b>★☆☆</b></div>
+        </div>
+        <div class="pcard-desc">Training aircraft. Easy to land.</div>
+      </div>
     </div>
-    <button onclick="startFlight()">▶ TAKE OFF</button>
+  </div>
+
+  <!-- Pre-flight / Start -->
+  <div id="start-screen" style="display:none">
+    <h2 id="start-plane-name">Boeing 737</h2>
+    <div class="ctrl-grid">
+      <span>W / S</span><span>Pitch up / down</span>
+      <span>A / D</span><span>Roll left / right</span>
+      <span>Q / E</span><span>Yaw left / right</span>
+      <span>↑ / ↓</span><span>Throttle ±</span>
+      <span>B</span><span>Brakes</span>
+      <span>F</span><span>Flaps cycle</span>
+      <span>G</span><span>Landing gear</span>
+      <span>V</span><span>Toggle camera</span>
+    </div>
+    <div class="start-btns">
+      <button onclick="startFlight()">▶ TAKE OFF</button>
+      <button class="sec" onclick="showSelect()">← BACK</button>
+    </div>
   </div>
 
   <!-- Desktop key hints -->
   <div id="key-hints">
-    <span>W/S</span> Pitch &nbsp;<span>A/D</span> Roll &nbsp;<span>Q/E</span> Yaw<br>
-    <span>↑/↓</span> Throttle &nbsp;<span>F</span> Flaps &nbsp;<span>G</span> Gear &nbsp;<span>R</span> Reset
+    <span>W/S</span> Pitch &nbsp;
+    <span>A/D</span> Roll &nbsp;
+    <span>Q/E</span> Yaw &nbsp;
+    <span>↑/↓</span> Throttle &nbsp;
+    <span>F</span> Flaps &nbsp;
+    <span>G</span> Gear &nbsp;
+    <span>B</span> Brakes &nbsp;
+    <span>V</span> View
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
